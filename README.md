@@ -36,7 +36,7 @@
 </head>
 <body>
 
-<h2>📚 공부 타이머 & 학습 조언 & 그래프</h2>
+<h2>📚 오늘 공부 </h2>
 
 <label>과목명: <input type="text" id="subjectInput" placeholder="예: 수학, 영어"></label><br>
 <label>공부 시간(분): <input type="number" id="studyTimeInput" placeholder="예: 60"></label><br>
