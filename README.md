@@ -1,23 +1,23 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>과목별 학습 시간 측정기</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>과목별 학습 시간 타이머 + 그래프</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: Arial;
       background-color: #eef1f4;
       margin: 0;
       padding: 0;
     }
     .container {
-      max-width: 600px;
+      max-width: 650px;
       margin: 40px auto;
       padding: 20px;
-      background: white;
+      background-color: #fff;
       border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
     h1 {
       text-align: center;
@@ -62,18 +62,24 @@
       color: white;
       cursor: pointer;
     }
-    .submit-btn    { background-color: #007bff; }
-    .start-btn     { background-color: #28a745; }
-    .stop-btn      { background-color: #ffc107; color: black; }
-    .reset-btn     { background-color: #dc3545; }
-    button:hover {
-      opacity: 0.9;
+    .submit-btn  { background-color: #007bff; }
+    .start-btn   { background-color: #28a745; }
+    .stop-btn    { background-color: #ffc107; color: black; }
+    .reset-btn   { background-color: #dc3545; }
+    .graph-btn   { background-color: #6f42c1; }
+    canvas {
+      margin-top: 20px;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
     }
   </style>
+  <!-- Chart.js CDN 추가 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="container">
-    <h1>📚 과목별 공부 타이머</h1>
+    <h1>📚 과목별 공부 타이머 & 그래프</h1>
 
     <div class="message-box" id="messages"></div>
 
@@ -91,27 +97,29 @@
       <button class="submit-btn" onclick="submitTime()">⏱️ 시간 직접 입력</button>
       <button class="start-btn" onclick="startTimer()">▶️ 공부 시작</button>
       <button class="stop-btn" onclick="stopTimer()">⏹️ 공부 종료</button>
+      <button class="graph-btn" onclick="showChart()">📊 학습 시간 그래프</button>
       <button class="reset-btn" onclick="reset()">🔄 다시 시작</button>
     </div>
+
+    <canvas id="studyChart" width="100%" height="300"></canvas>
   </div>
 
   <script>
     let userName = "";
-    let subjectTimes = {};     // 누적 시간 저장용
+    let subjectTimes = {};  // { 과목: 총시간 }
     let currentSubject = "";
     let startTime = null;
+    let chart = null;
 
     window.onload = function () {
       userName = prompt("반갑습니다. 성함이 어떻게 되시나요?", "학생");
       loadData();
-      showMessage(`👋 안녕하세요, ${userName}님! 과목명을 입력하고 공부를 시작해보세요.`);
+      showMessage(`👋 안녕하세요, ${userName}님! 공부를 시작해보세요.`);
     };
 
     function loadData() {
       const saved = localStorage.getItem("study_subjects_" + userName);
-      if (saved) {
-        subjectTimes = JSON.parse(saved);
-      }
+      if (saved) subjectTimes = JSON.parse(saved);
     }
 
     function saveData() {
@@ -129,25 +137,23 @@
     function submitTime() {
       const subject = document.getElementById("subjectInput").value.trim();
       const minutes = parseInt(document.getElementById("studyTimeInput").value);
-
       if (!subject || isNaN(minutes) || minutes <= 0) {
         alert("과목명과 유효한 시간을 입력하세요.");
         return;
       }
-
       addStudyTime(subject, minutes);
-      document.getElementById("studyTimeInput").value = "";
       document.getElementById("subjectInput").value = "";
+      document.getElementById("studyTimeInput").value = "";
     }
 
     function startTimer() {
       const subject = document.getElementById("subjectInput").value.trim();
       if (!subject) {
-        alert("과목명을 먼저 입력하세요.");
+        alert("공부할 과목명을 입력해주세요.");
         return;
       }
       if (startTime !== null) {
-        alert("이미 공부 중입니다!");
+        alert("이미 공부 중입니다.");
         return;
       }
       currentSubject = subject;
@@ -157,22 +163,19 @@
 
     function stopTimer() {
       if (!startTime || !currentSubject) {
-        alert("공부를 먼저 시작하세요.");
+        alert("공부를 시작한 후 종료할 수 있습니다.");
         return;
       }
       const endTime = new Date();
-      const diffMs = endTime - startTime;
-      const minutes = Math.floor(diffMs / 1000 / 60);
-
-      if (minutes < 1) {
-        showMessage(`⏹️ [${currentSubject}] 공부 시간이 너무 짧아서 저장하지 않았습니다.`);
+      const diff = Math.floor((endTime - startTime) / 60000); // 분
+      if (diff < 1) {
+        showMessage(`⏹️ 너무 짧은 공부 시간은 저장되지 않았습니다.`);
       } else {
-        addStudyTime(currentSubject, minutes);
-        showMessage(`⏹️ [${currentSubject}] 공부 종료 - 측정 시간: ${minutes}분`);
+        addStudyTime(currentSubject, diff);
+        showMessage(`⏹️ [${currentSubject}] 공부 종료 – ${diff}분 기록됨`);
       }
-
-      startTime = null;
       currentSubject = "";
+      startTime = null;
     }
 
     function addStudyTime(subject, minutes) {
@@ -182,31 +185,65 @@
       showAdvice(subject, subjectTimes[subject]);
     }
 
-    function showAdvice(subject, totalMin) {
+    function showAdvice(subject, minutes) {
       let advice = "";
-      if (totalMin < 60) {
-        advice = "시작이 반! 하루 30분부터 차근차근 해봐요.";
-      } else if (totalMin < 300) {
-        advice = "좋아요! 개념 정리와 복습을 해보세요.";
-      } else if (totalMin < 1000) {
-        advice = "훌륭해요! 문제 풀이도 병행해보세요.";
+      if (minutes < 60) {
+        advice = "시작이 반! 하루 30분씩 꾸준히 해보세요.";
+      } else if (minutes < 300) {
+        advice = "잘 하고 있어요! 복습과 문제풀이 병행해보세요.";
+      } else if (minutes < 1000) {
+        advice = "아주 좋아요! 오답노트 정리도 해보세요.";
       } else {
-        advice = "🔥 대단해요! 지금처럼 꾸준히 하면 큰 성과가 있어요!";
+        advice = "🔥 엄청나요! 실전 대비 모드로 전환해도 좋겠어요.";
       }
-      showMessage(`💡 [${subject}] 학습 조언: ${advice}`);
+      showMessage(`💡 [${subject}] 조언: ${advice}`);
     }
 
     function reset() {
-      if (confirm("모든 기록을 삭제하고 다시 시작할까요?")) {
+      if (confirm("모든 기록을 초기화하시겠습니까?")) {
         subjectTimes = {};
+        saveData();
         startTime = null;
         currentSubject = "";
-        localStorage.removeItem("study_subjects_" + userName);
         document.getElementById("messages").innerHTML = "";
-        showMessage("📦 모든 학습 기록이 초기화되었습니다.");
+        if (chart) chart.destroy();
+        showMessage("🧹 모든 기록이 초기화되었습니다.");
       }
+    }
+
+    function showChart() {
+      const labels = Object.keys(subjectTimes);
+      const data = Object.values(subjectTimes);
+
+      if (chart) chart.destroy();
+
+      const ctx = document.getElementById('studyChart').getContext('2d');
+      chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '과목별 누적 학습 시간 (분)',
+            data: data,
+            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: '분'
+              }
+            }
+          }
+        }
+      });
     }
   </script>
 </body>
 </html>
-
