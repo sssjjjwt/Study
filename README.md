@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>실시간 과목별 학습 트래커</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>과목별 학습 시간 측정기</title>
   <style>
     body {
-      font-family: Arial;
-      background-color: #f0f2f5;
+      font-family: Arial, sans-serif;
+      background-color: #eef1f4;
       margin: 0;
       padding: 0;
     }
@@ -15,9 +15,9 @@
       max-width: 600px;
       margin: 40px auto;
       padding: 20px;
-      background-color: #fff;
+      background: white;
       border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
     h1 {
       text-align: center;
@@ -26,24 +26,24 @@
     .message-box {
       height: 250px;
       overflow-y: auto;
+      background: #f8f8f8;
+      border: 1px solid #ccc;
+      border-radius: 8px;
       padding: 10px;
       margin: 20px 0;
-      background-color: #f9f9f9;
-      border-radius: 8px;
-      border: 1px solid #ccc;
     }
     .form-group {
       margin-bottom: 15px;
     }
-    .form-group label {
-      display: block;
+    label {
       font-weight: bold;
-      margin-bottom: 6px;
+      display: block;
+      margin-bottom: 5px;
     }
-    .form-group input {
+    input {
       width: 100%;
       padding: 10px;
-      border: 1px solid #ccc;
+      border: 1px solid #bbb;
       border-radius: 6px;
       font-size: 16px;
     }
@@ -54,35 +54,26 @@
       margin-top: 10px;
     }
     button {
-      padding: 10px;
       flex: 1;
+      padding: 10px;
       border: none;
       border-radius: 6px;
-      background-color: #007bff;
+      font-size: 16px;
       color: white;
       cursor: pointer;
-      font-size: 16px;
     }
+    .submit-btn    { background-color: #007bff; }
+    .start-btn     { background-color: #28a745; }
+    .stop-btn      { background-color: #ffc107; color: black; }
+    .reset-btn     { background-color: #dc3545; }
     button:hover {
-      background-color: #0056b3;
-    }
-    .reset-button {
-      background-color: #dc3545;
-    }
-    .reset-button:hover {
-      background-color: #a71d2a;
-    }
-    .timer-button {
-      background-color: #28a745;
-    }
-    .timer-button:hover {
-      background-color: #1e7e34;
+      opacity: 0.9;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>📚 실시간 과목별 학습 트래커</h1>
+    <h1>📚 과목별 공부 타이머</h1>
 
     <div class="message-box" id="messages"></div>
 
@@ -97,23 +88,23 @@
     </div>
 
     <div class="button-row">
-      <button onclick="submitTime()">⏱️ 시간 직접 입력</button>
-      <button class="timer-button" onclick="startTimer()">▶️ 공부 시작</button>
-      <button class="timer-button" onclick="stopTimer()">⏹️ 공부 종료</button>
-      <button class="reset-button" onclick="reset()">🔄 다시 시작</button>
+      <button class="submit-btn" onclick="submitTime()">⏱️ 시간 직접 입력</button>
+      <button class="start-btn" onclick="startTimer()">▶️ 공부 시작</button>
+      <button class="stop-btn" onclick="stopTimer()">⏹️ 공부 종료</button>
+      <button class="reset-btn" onclick="reset()">🔄 다시 시작</button>
     </div>
   </div>
 
   <script>
     let userName = "";
-    let subjectTimes = {}; // { subject: total_minutes }
+    let subjectTimes = {};     // 누적 시간 저장용
     let currentSubject = "";
     let startTime = null;
 
     window.onload = function () {
       userName = prompt("반갑습니다. 성함이 어떻게 되시나요?", "학생");
       loadData();
-      showMessage("안녕하세요, " + userName + "님! 과목과 시간을 입력하거나 공부 시작/종료 버튼을 사용해보세요.");
+      showMessage(`👋 안녕하세요, ${userName}님! 과목명을 입력하고 공부를 시작해보세요.`);
     };
 
     function loadData() {
@@ -136,26 +127,23 @@
     }
 
     function submitTime() {
-      const subjectInput = document.getElementById("subjectInput");
-      const timeInput = document.getElementById("studyTimeInput");
-      const subject = subjectInput.value.trim();
-      const time = Number(timeInput.value);
+      const subject = document.getElementById("subjectInput").value.trim();
+      const minutes = parseInt(document.getElementById("studyTimeInput").value);
 
-      if (!subject || isNaN(time) || time <= 0) {
-        alert("과목과 시간을 정확히 입력해주세요.");
+      if (!subject || isNaN(minutes) || minutes <= 0) {
+        alert("과목명과 유효한 시간을 입력하세요.");
         return;
       }
 
-      addStudyTime(subject, time);
-      subjectInput.value = "";
-      timeInput.value = "";
+      addStudyTime(subject, minutes);
+      document.getElementById("studyTimeInput").value = "";
+      document.getElementById("subjectInput").value = "";
     }
 
     function startTimer() {
-      const subjectInput = document.getElementById("subjectInput");
-      const subject = subjectInput.value.trim();
+      const subject = document.getElementById("subjectInput").value.trim();
       if (!subject) {
-        alert("공부할 과목명을 먼저 입력해주세요.");
+        alert("과목명을 먼저 입력하세요.");
         return;
       }
       if (startTime !== null) {
@@ -163,59 +151,62 @@
         return;
       }
       currentSubject = subject;
-      startTime = Date.now();
-      showMessage(`▶️ [${subject}] 공부를 시작했습니다.`);
+      startTime = new Date();
+      showMessage(`▶️ [${subject}] 공부 시작`);
     }
 
     function stopTimer() {
-      if (startTime === null || !currentSubject) {
-        alert("공부 시작을 먼저 눌러주세요.");
+      if (!startTime || !currentSubject) {
+        alert("공부를 먼저 시작하세요.");
         return;
       }
-      const endTime = Date.now();
-      const diffMinutes = Math.floor((endTime - startTime) / 1000 / 60); // 분 단위
+      const endTime = new Date();
+      const diffMs = endTime - startTime;
+      const minutes = Math.floor(diffMs / 1000 / 60);
 
-      if (diffMinutes <= 0) {
-        showMessage("😅 너무 짧은 공부 시간은 저장되지 않았습니다.");
+      if (minutes < 1) {
+        showMessage(`⏹️ [${currentSubject}] 공부 시간이 너무 짧아서 저장하지 않았습니다.`);
       } else {
-        addStudyTime(currentSubject, diffMinutes);
-        showMessage(`⏹️ [${currentSubject}] 공부 종료! 측정된 시간: ${diffMinutes}분`);
+        addStudyTime(currentSubject, minutes);
+        showMessage(`⏹️ [${currentSubject}] 공부 종료 - 측정 시간: ${minutes}분`);
       }
 
-      currentSubject = "";
       startTime = null;
+      currentSubject = "";
     }
 
-    function addStudyTime(subject, time) {
-      subjectTimes[subject] = (subjectTimes[subject] || 0) + time;
+    function addStudyTime(subject, minutes) {
+      subjectTimes[subject] = (subjectTimes[subject] || 0) + minutes;
       saveData();
-
       showMessage(`📊 [${subject}] 누적 학습 시간: ${subjectTimes[subject]}분`);
       showAdvice(subject, subjectTimes[subject]);
     }
 
-    function showAdvice(subject, minutes) {
-      let msg = "";
-      if (minutes < 60) {
-        msg = `🔸 ${subject}: 이제 시작이에요! 하루 30분부터 꾸준히 해봐요.`;
-      } else if (minutes < 300) {
-        msg = `🔸 ${subject}: 좋아요! 개념 복습과 기출 문제도 병행해보세요.`;
-      } else if (minutes < 1000) {
-        msg = `🔸 ${subject}: 충분히 잘하고 있어요! 오답노트 정리도 해보세요.`;
+    function showAdvice(subject, totalMin) {
+      let advice = "";
+      if (totalMin < 60) {
+        advice = "시작이 반! 하루 30분부터 차근차근 해봐요.";
+      } else if (totalMin < 300) {
+        advice = "좋아요! 개념 정리와 복습을 해보세요.";
+      } else if (totalMin < 1000) {
+        advice = "훌륭해요! 문제 풀이도 병행해보세요.";
       } else {
-        msg = `🎯 ${subject}: 대단해요! 실전 모의고사나 고난도 문제도 도전해보세요!`;
+        advice = "🔥 대단해요! 지금처럼 꾸준히 하면 큰 성과가 있어요!";
       }
-      showMessage(msg);
+      showMessage(`💡 [${subject}] 학습 조언: ${advice}`);
     }
 
     function reset() {
-      if (confirm("모든 기록을 초기화하시겠습니까?")) {
+      if (confirm("모든 기록을 삭제하고 다시 시작할까요?")) {
         subjectTimes = {};
-        saveData();
+        startTime = null;
+        currentSubject = "";
+        localStorage.removeItem("study_subjects_" + userName);
         document.getElementById("messages").innerHTML = "";
-        showMessage("🧹 기록이 모두 초기화되었습니다. 새롭게 시작해볼까요?");
+        showMessage("📦 모든 학습 기록이 초기화되었습니다.");
       }
     }
   </script>
 </body>
 </html>
+
