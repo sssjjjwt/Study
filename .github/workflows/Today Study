@@ -1,0 +1,130 @@
+pip install matplotlib
+python app.py
+
+import time, json, os
+from datetime import datetime
+import matplotlib.pyplot as plt
+
+data_file = "study_data.json"
+start_time = None
+
+def load_data():
+    if os.path.exists(data_file):
+        with open(data_file, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_data(data):
+    with open(data_file, 'w') as f:
+        json.dump(data, f, indent=4)
+
+def get_today():
+    return datetime.now().strftime("%Y-%m-%d")
+
+def start():
+    global start_time
+    start_time = time.time()
+    print("⏱️ 공부 시작!")
+
+def stop(subject, data):
+    global start_time
+    if not start_time:
+        print("❗ 시작된 공부가 없습니다.")
+        return
+    elapsed = time.time() - start_time
+    start_time = None
+    date = get_today()
+    data.setdefault(date, {})
+    data[date][subject] = data[date].get(subject, 0) + elapsed
+    save_data(data)
+    print(f"✅ {subject} 공부 종료 ({int(elapsed // 60)}분)")
+
+def add_manual(subject, minutes, data):
+    date = get_today()
+    data.setdefault(date, {})
+    data[date][subject] = data[date].get(subject, 0) + int(minutes) * 60
+    save_data(data)
+    print(f"➕ {subject}에 {minutes}분 추가됨.")
+
+def show_summary(data):
+    today = get_today()
+    subjects = data.get(today, {})
+    if not subjects:
+        print("📋 오늘 학습 데이터 없음.")
+        return
+    for s, t in subjects.items():
+        print(f"- {s}: {int(t // 60)}분")
+
+def get_advice(data):
+    today = get_today()
+    subjects = data.get(today, {})
+    if not subjects:
+        print("🤖 오늘 학습 기록 없음.")
+        return
+    total = sum(subjects.values())
+    most = max(subjects, key=subjects.get)
+    least = min(subjects, key=subjects.get)
+    print(f"📊 총 공부 시간: {int(total // 60)}분")
+    print(f"- 가장 많이 공부한 과목: {most}")
+    print(f"- 가장 적게 공부한 과목: {least}")
+    print(f"📚 '{least}' 과목을 더 보충해보세요!")
+
+def draw_graph(data):
+    today = get_today()
+    subjects = data.get(today, {})
+    if not subjects:
+        print("📉 그래프 데이터 없음.")
+        return
+    subjects_list = list(subjects.keys())
+    minutes = [int(t // 60) for t in subjects.values()]
+
+    plt.figure(figsize=(6,4))
+    bars = plt.bar(subjects_list, minutes, color='skyblue')
+    for bar, m in zip(bars, minutes):
+        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height()+1, f"{m}분", ha='center')
+    plt.title("오늘의 과목별 학습 시간")
+    plt.ylabel("시간 (분)")
+    plt.tight_layout()
+    plt.savefig("study_graph.png")
+    plt.close()
+    print("✅ 그래프 저장 완료 (study_graph.png)")
+
+def main():
+    data = load_data()
+    while True:
+        print("\n===== 쉬운 학습 트래커 =====")
+        print("1. 공부 시작")
+        print("2. 공부 종료")
+        print("3. 수동 시간 추가")
+        print("4. 오늘 요약 보기")
+        print("5. 조언 받기")
+        print("6. 그래프 저장")
+        print("0. 종료")
+        choice = input("선택: ").strip()
+
+        if choice == "1":
+            start()
+        elif choice == "2":
+            subject = input("과목 이름: ")
+            stop(subject, data)
+        elif choice == "3":
+            subject = input("과목 이름: ")
+            minutes = input("추가 시간(분): ")
+            if minutes.isdigit():
+                add_manual(subject, minutes, data)
+            else:
+                print("❗ 숫자를 정확히 입력하세요.")
+        elif choice == "4":
+            show_summary(data)
+        elif choice == "5":
+            get_advice(data)
+        elif choice == "6":
+            draw_graph(data)
+        elif choice == "0":
+            print("👋 종료합니다.")
+            break
+        else:
+            print("❗ 올바른 선택입니다.")
+
+if __name__ == "__main__":
+    main()
