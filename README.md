@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+30325 이원태
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>공부 타이머 + 그래프 + 조언</title>
+  <title>오늘 공부</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { font-family: Arial; padding: 20px; background:#f4f7fb; }
