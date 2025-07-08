@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>과목별 학습 시간 트래커</title>
+  <title>실시간 과목별 학습 트래커</title>
   <style>
     body {
       font-family: Arial;
@@ -49,7 +49,9 @@
     }
     .button-row {
       display: flex;
+      flex-wrap: wrap;
       gap: 10px;
+      margin-top: 10px;
     }
     button {
       padding: 10px;
@@ -70,11 +72,17 @@
     .reset-button:hover {
       background-color: #a71d2a;
     }
+    .timer-button {
+      background-color: #28a745;
+    }
+    .timer-button:hover {
+      background-color: #1e7e34;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>📚 과목별 학습 시간 트래커</h1>
+    <h1>📚 실시간 과목별 학습 트래커</h1>
 
     <div class="message-box" id="messages"></div>
 
@@ -84,25 +92,28 @@
     </div>
 
     <div class="form-group">
-      <label for="studyTimeInput">학습 시간 (분)</label>
+      <label for="studyTimeInput">직접 입력 시간 (분)</label>
       <input type="number" id="studyTimeInput" placeholder="예: 60">
     </div>
 
     <div class="button-row">
-      <button onclick="submitTime()">입력</button>
-      <button class="reset-button" onclick="reset()">다시 시작</button>
+      <button onclick="submitTime()">⏱️ 시간 직접 입력</button>
+      <button class="timer-button" onclick="startTimer()">▶️ 공부 시작</button>
+      <button class="timer-button" onclick="stopTimer()">⏹️ 공부 종료</button>
+      <button class="reset-button" onclick="reset()">🔄 다시 시작</button>
     </div>
   </div>
 
   <script>
     let userName = "";
     let subjectTimes = {}; // { subject: total_minutes }
+    let currentSubject = "";
+    let startTime = null;
 
     window.onload = function () {
       userName = prompt("반갑습니다. 성함이 어떻게 되시나요?", "학생");
       loadData();
-      showMessage("안녕하세요, " + userName + "님! 과목과 학습 시간을 입력해주세요.");
-      showMessage("과목별 누적 시간에 따라 공부 조언을 드립니다. 😊");
+      showMessage("안녕하세요, " + userName + "님! 과목과 시간을 입력하거나 공부 시작/종료 버튼을 사용해보세요.");
     };
 
     function loadData() {
@@ -130,26 +141,57 @@
       const subject = subjectInput.value.trim();
       const time = Number(timeInput.value);
 
-      if (!subject) {
-        alert("과목을 입력해주세요.");
-        return;
-      }
-      if (isNaN(time) || time <= 0) {
-        alert("올바른 학습 시간을 입력해주세요.");
+      if (!subject || isNaN(time) || time <= 0) {
+        alert("과목과 시간을 정확히 입력해주세요.");
         return;
       }
 
-      // 누적 저장
+      addStudyTime(subject, time);
+      subjectInput.value = "";
+      timeInput.value = "";
+    }
+
+    function startTimer() {
+      const subjectInput = document.getElementById("subjectInput");
+      const subject = subjectInput.value.trim();
+      if (!subject) {
+        alert("공부할 과목명을 먼저 입력해주세요.");
+        return;
+      }
+      if (startTime !== null) {
+        alert("이미 공부 중입니다!");
+        return;
+      }
+      currentSubject = subject;
+      startTime = Date.now();
+      showMessage(`▶️ [${subject}] 공부를 시작했습니다.`);
+    }
+
+    function stopTimer() {
+      if (startTime === null || !currentSubject) {
+        alert("공부 시작을 먼저 눌러주세요.");
+        return;
+      }
+      const endTime = Date.now();
+      const diffMinutes = Math.floor((endTime - startTime) / 1000 / 60); // 분 단위
+
+      if (diffMinutes <= 0) {
+        showMessage("😅 너무 짧은 공부 시간은 저장되지 않았습니다.");
+      } else {
+        addStudyTime(currentSubject, diffMinutes);
+        showMessage(`⏹️ [${currentSubject}] 공부 종료! 측정된 시간: ${diffMinutes}분`);
+      }
+
+      currentSubject = "";
+      startTime = null;
+    }
+
+    function addStudyTime(subject, time) {
       subjectTimes[subject] = (subjectTimes[subject] || 0) + time;
       saveData();
 
-      showMessage(`⏱️ [${subject}] 학습 시간: ${time}분`);
       showMessage(`📊 [${subject}] 누적 학습 시간: ${subjectTimes[subject]}분`);
       showAdvice(subject, subjectTimes[subject]);
-
-      // 입력창 초기화
-      subjectInput.value = "";
-      timeInput.value = "";
     }
 
     function showAdvice(subject, minutes) {
@@ -167,14 +209,13 @@
     }
 
     function reset() {
-      if (confirm("모든 과목의 기록을 초기화하시겠습니까?")) {
+      if (confirm("모든 기록을 초기화하시겠습니까?")) {
         subjectTimes = {};
         saveData();
         document.getElementById("messages").innerHTML = "";
-        showMessage("기록이 모두 초기화되었습니다. 다시 시작해봅시다!");
+        showMessage("🧹 기록이 모두 초기화되었습니다. 새롭게 시작해볼까요?");
       }
     }
   </script>
 </body>
 </html>
-
