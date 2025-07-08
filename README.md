@@ -1,73 +1,83 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>학습 시간 트래커</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>과목별 학습 시간 트래커</title>
   <style>
     body {
-      font-family: 'Arial';
+      font-family: Arial;
+      background-color: #f0f2f5;
       margin: 0;
       padding: 0;
-      background-color: #eef2f3;
     }
     .container {
       max-width: 600px;
-      margin: 50px auto;
+      margin: 40px auto;
       padding: 20px;
-      background: white;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      background-color: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
     h1 {
       text-align: center;
       color: #333;
     }
     .message-box {
-      min-height: 200px;
-      margin: 20px 0;
-      padding: 10px;
-      background: #f9f9f9;
-      border-radius: 5px;
+      height: 250px;
       overflow-y: auto;
+      padding: 10px;
+      margin: 20px 0;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+      border: 1px solid #ccc;
     }
     .input-row {
       display: flex;
+      gap: 10px;
       margin-bottom: 10px;
     }
     .input-row input {
       flex: 1;
       padding: 10px;
-      margin-right: 5px;
-      border-radius: 5px;
       border: 1px solid #ccc;
+      border-radius: 6px;
     }
-    .input-row button {
+    .button-row {
+      display: flex;
+      gap: 10px;
+    }
+    button {
       padding: 10px;
+      flex: 1;
       border: none;
-      border-radius: 5px;
-      background: #28a745;
+      border-radius: 6px;
+      background-color: #007bff;
       color: white;
       cursor: pointer;
     }
-    .input-row button:hover {
-      background: #218838;
+    button:hover {
+      background-color: #0056b3;
     }
     .reset-button {
-      background: #dc3545;
-      margin-left: 5px;
+      background-color: #dc3545;
     }
     .reset-button:hover {
-      background: #c82333;
+      background-color: #a71d2a;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>📚 학습 시간 기록 챗봇</h1>
+    <h1>📚 과목별 학습 시간 트래커</h1>
     <div class="message-box" id="messages"></div>
+
     <div class="input-row">
-      <input type="number" id="studyTimeInput" placeholder="오늘 학습 시간 (분)">
+      <input type="text" id="subjectInput" placeholder="과목명 (예: 수학)">
+      <input type="number" id="studyTimeInput" placeholder="학습 시간 (분)">
+    </div>
+
+    <div class="button-row">
       <button onclick="submitTime()">입력</button>
       <button class="reset-button" onclick="reset()">다시 시작</button>
     </div>
@@ -75,24 +85,24 @@
 
   <script>
     let userName = "";
-    let totalMinutes = 0;
+    let subjectTimes = {}; // { subject: total_minutes }
 
     window.onload = function () {
       userName = prompt("반갑습니다. 성함이 어떻게 되시나요?", "학생");
       loadData();
-      showMessage("안녕하세요, " + userName + "님! 오늘 공부하신 시간을 분 단위로 입력해주세요.");
-      showMessage("누적 시간에 따라 공부 조언을 드립니다. 😊");
+      showMessage("안녕하세요, " + userName + "님! 과목과 학습 시간을 입력해주세요.");
+      showMessage("과목별 누적 시간에 따라 공부 조언을 드립니다. 😊");
     };
 
     function loadData() {
-      const saved = localStorage.getItem("study_data_" + userName);
+      const saved = localStorage.getItem("study_subjects_" + userName);
       if (saved) {
-        totalMinutes = Number(saved);
+        subjectTimes = JSON.parse(saved);
       }
     }
 
     function saveData() {
-      localStorage.setItem("study_data_" + userName, totalMinutes);
+      localStorage.setItem("study_subjects_" + userName, JSON.stringify(subjectTimes));
     }
 
     function showMessage(msg) {
@@ -104,43 +114,53 @@
     }
 
     function submitTime() {
-      const input = document.getElementById("studyTimeInput");
-      const value = Number(input.value);
+      const subjectInput = document.getElementById("subjectInput");
+      const timeInput = document.getElementById("studyTimeInput");
+      const subject = subjectInput.value.trim();
+      const time = Number(timeInput.value);
 
-      if (isNaN(value) || value <= 0) {
+      if (!subject) {
+        alert("과목을 입력해주세요.");
+        return;
+      }
+      if (isNaN(time) || time <= 0) {
         alert("올바른 학습 시간을 입력해주세요.");
         return;
       }
 
-      totalMinutes += value;
+      // 누적 저장
+      subjectTimes[subject] = (subjectTimes[subject] || 0) + time;
       saveData();
 
-      showMessage("⏱️ 입력된 학습 시간: " + value + "분");
-      showMessage("📊 누적 학습 시간: " + totalMinutes + "분");
-      showAdvice();
-      input.value = "";
+      showMessage(`⏱️ [${subject}] 학습 시간: ${time}분`);
+      showMessage(`📊 [${subject}] 누적 학습 시간: ${subjectTimes[subject]}분`);
+      showAdvice(subject, subjectTimes[subject]);
+
+      // 입력창 초기화
+      subjectInput.value = "";
+      timeInput.value = "";
     }
 
-    function showAdvice() {
+    function showAdvice(subject, minutes) {
       let msg = "";
-      if (totalMinutes < 60) {
-        msg = "🔹 아직은 시작 단계예요. 매일 30분씩 꾸준히 해보세요!";
-      } else if (totalMinutes < 300) {
-        msg = "🔹 좋은 출발입니다! 계획을 세우고 루틴을 만들어보세요.";
-      } else if (totalMinutes < 1000) {
-        msg = "🔹 훌륭해요! 복습과 실전 연습도 병행해보세요.";
+      if (minutes < 60) {
+        msg = `🔸 ${subject}: 이제 시작이에요! 하루 30분부터 꾸준히 해봐요.`;
+      } else if (minutes < 300) {
+        msg = `🔸 ${subject}: 좋아요! 개념 복습과 기출 문제도 병행해보세요.`;
+      } else if (minutes < 1000) {
+        msg = `🔸 ${subject}: 충분히 잘하고 있어요! 오답노트 정리도 해보세요.`;
       } else {
-        msg = "🎉 대단합니다! 지금처럼 꾸준히만 하면 무엇이든 가능해요!";
+        msg = `🎯 ${subject}: 대단해요! 실전 모의고사나 고난도 문제도 도전해보세요!`;
       }
       showMessage(msg);
     }
 
     function reset() {
-      if (confirm("정말 다시 시작하시겠습니까? 모든 기록이 삭제됩니다.")) {
-        totalMinutes = 0;
+      if (confirm("모든 과목의 기록을 초기화하시겠습니까?")) {
+        subjectTimes = {};
         saveData();
         document.getElementById("messages").innerHTML = "";
-        showMessage("모든 기록이 초기화되었습니다. 새롭게 시작해볼까요?");
+        showMessage("기록이 모두 초기화되었습니다. 다시 시작해봅시다!");
       }
     }
   </script>
