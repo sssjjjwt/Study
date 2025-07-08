@@ -1,139 +1,148 @@
-import time, json, os
-from datetime import datetime
-import matplotlib.pyplot as plt
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>학습 시간 트래커</title>
+  <style>
+    body {
+      font-family: 'Arial';
+      margin: 0;
+      padding: 0;
+      background-color: #eef2f3;
+    }
+    .container {
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    .message-box {
+      min-height: 200px;
+      margin: 20px 0;
+      padding: 10px;
+      background: #f9f9f9;
+      border-radius: 5px;
+      overflow-y: auto;
+    }
+    .input-row {
+      display: flex;
+      margin-bottom: 10px;
+    }
+    .input-row input {
+      flex: 1;
+      padding: 10px;
+      margin-right: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    .input-row button {
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      background: #28a745;
+      color: white;
+      cursor: pointer;
+    }
+    .input-row button:hover {
+      background: #218838;
+    }
+    .reset-button {
+      background: #dc3545;
+      margin-left: 5px;
+    }
+    .reset-button:hover {
+      background: #c82333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📚 학습 시간 기록 챗봇</h1>
+    <div class="message-box" id="messages"></div>
+    <div class="input-row">
+      <input type="number" id="studyTimeInput" placeholder="오늘 학습 시간 (분)">
+      <button onclick="submitTime()">입력</button>
+      <button class="reset-button" onclick="reset()">다시 시작</button>
+    </div>
+  </div>
 
-class StudyTracker:
-    def __init__(self):
-        self.start_time = None
-        self.data_file = "study_data.json"
-        self.data = self.load_data()
+  <script>
+    let userName = "";
+    let totalMinutes = 0;
 
-    def load_data(self):
-        if os.path.exists(self.data_file):
-            with open(self.data_file, 'r') as f:
-                return json.load(f)
-        return {}
+    window.onload = function () {
+      userName = prompt("반갑습니다. 성함이 어떻게 되시나요?", "학생");
+      loadData();
+      showMessage("안녕하세요, " + userName + "님! 오늘 공부하신 시간을 분 단위로 입력해주세요.");
+      showMessage("누적 시간에 따라 공부 조언을 드립니다. 😊");
+    };
 
-    def save_data(self):
-        with open(self.data_file, 'w') as f:
-            json.dump(self.data, f, indent=4)
+    function loadData() {
+      const saved = localStorage.getItem("study_data_" + userName);
+      if (saved) {
+        totalMinutes = Number(saved);
+      }
+    }
 
-    def get_today(self):
-        return datetime.now().strftime("%Y-%m-%d")
+    function saveData() {
+      localStorage.setItem("study_data_" + userName, totalMinutes);
+    }
 
-    def start(self):
-        self.start_time = time.time()
+    function showMessage(msg) {
+      const box = document.getElementById("messages");
+      const p = document.createElement("p");
+      p.textContent = msg;
+      box.appendChild(p);
+      box.scrollTop = box.scrollHeight;
+    }
 
-    def stop(self, subject):
-        if not self.start_time:
-            return 0
-        elapsed = time.time() - self.start_time
-        self.start_time = None
-        date = self.get_today()
-        self.data.setdefault(date, {})
-        self.data[date][subject] = self.data[date].get(subject, 0) + elapsed
-        self.save_data()
-        return int(elapsed // 60)
+    function submitTime() {
+      const input = document.getElementById("studyTimeInput");
+      const value = Number(input.value);
 
-    def add_manual(self, subject, minutes):
-        seconds = int(minutes) * 60
-        date = self.get_today()
-        self.data.setdefault(date, {})
-        self.data[date][subject] = self.data[date].get(subject, 0) + seconds
-        self.save_data()
+      if (isNaN(value) || value <= 0) {
+        alert("올바른 학습 시간을 입력해주세요.");
+        return;
+      }
 
-    def get_today_data(self):
-        return self.data.get(self.get_today(), {})
+      totalMinutes += value;
+      saveData();
 
-    def show_today_summary(self):
-        data = self.get_today_data()
-        if not data:
-            print("오늘 학습 데이터가 없습니다.")
-            return
-        for subject, seconds in data.items():
-            print(f"- {subject}: {int(seconds // 60)}분")
+      showMessage("⏱️ 입력된 학습 시간: " + value + "분");
+      showMessage("📊 누적 학습 시간: " + totalMinutes + "분");
+      showAdvice();
+      input.value = "";
+    }
 
-    def get_advice(self):
-        data = self.get_today_data()
-        if not data:
-            print("오늘 학습 기록이 없습니다.")
-            return
-        total = sum(data.values())
-        most = max(data, key=data.get)
-        least = min(data, key=data.get)
-        print(f"📊 오늘 총 학습 시간: {int(total // 60)}분")
-        print(f"- 가장 많이 공부한 과목: {most}")
-        print(f"- 가장 적게 공부한 과목: {least}")
-        print(f"📚 '{least}' 과목을 조금 더 보충해보세요!")
+    function showAdvice() {
+      let msg = "";
+      if (totalMinutes < 60) {
+        msg = "🔹 아직은 시작 단계예요. 매일 30분씩 꾸준히 해보세요!";
+      } else if (totalMinutes < 300) {
+        msg = "🔹 좋은 출발입니다! 계획을 세우고 루틴을 만들어보세요.";
+      } else if (totalMinutes < 1000) {
+        msg = "🔹 훌륭해요! 복습과 실전 연습도 병행해보세요.";
+      } else {
+        msg = "🎉 대단합니다! 지금처럼 꾸준히만 하면 무엇이든 가능해요!";
+      }
+      showMessage(msg);
+    }
 
-    def plot_graph(self):
-        data = self.get_today_data()
-        if not data:
-            print("📉 그래프를 그릴 데이터가 없습니다.")
-            return
-
-        subjects = list(data.keys())
-        minutes = [int(t // 60) for t in data.values()]
-
-        plt.figure(figsize=(6, 4))
-        bars = plt.bar(subjects, minutes, color='mediumseagreen')
-        plt.title("오늘의 과목별 학습 시간")
-        plt.ylabel("시간 (분)")
-        for bar, m in zip(bars, minutes):
-            plt.text(bar.get_x() + bar.get_width()/2, bar.get_height()+1, f"{m}분", ha='center')
-        plt.tight_layout()
-        plt.savefig("study_graph.png")
-        plt.close()
-        print("📈 그래프가 'study_graph.png' 파일로 저장되었습니다.")
-
-# 콘솔 메뉴
-def main():
-    tracker = StudyTracker()
-
-    while True:
-        print("\n📚 쉬운 학습 트래커")
-        print("1. 공부 시작")
-        print("2. 공부 종료")
-        print("3. 수동 시간 추가")
-        print("4. 오늘 학습 요약")
-        print("5. 학습 조언 받기")
-        print("6. 그래프 저장")
-        print("0. 종료")
-        choice = input("선택: ").strip()
-
-        if choice == "1":
-            subject = input("과목 이름: ")
-            tracker.start()
-            print(f"⏱️ {subject} 공부 시작!")
-
-        elif choice == "2":
-            subject = input("과목 이름: ")
-            mins = tracker.stop(subject)
-            print(f"✅ {subject} 공부 종료 ({mins}분)")
-
-        elif choice == "3":
-            subject = input("과목 이름: ")
-            minutes = input("추가할 시간 (분): ")
-            if minutes.isdigit():
-                tracker.add_manual(subject, minutes)
-                print(f"➕ {subject}에 {minutes}분 추가됨.")
-            else:
-                print("숫자를 정확히 입력하세요.")
-
-        elif choice == "4":
-            tracker.show_today_summary()
-
-        elif choice == "5":
-            tracker.get_advice()
-
-        elif choice == "6":
-            tracker.plot_graph()
-
-        elif choice == "0":
-            print("👋 종료합니다.")
-            break
-        else:
-            print("❗ 올바른 번호를 선택하세요.")
-
-if __name__ == "__main__":
-    main()
+    function reset() {
+      if (confirm("정말 다시 시작하시겠습니까? 모든 기록이 삭제됩니다.")) {
+        totalMinutes = 0;
+        saveData();
+        document.getElementById("messages").innerHTML = "";
+        showMessage("모든 기록이 초기화되었습니다. 새롭게 시작해볼까요?");
+      }
+    }
+  </script>
+</body>
+</html>
