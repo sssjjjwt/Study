@@ -2,20 +2,19 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>과목별 학습 시간 타이머 + 그래프</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>과목별 공부 시간 타이머 & 그래프</title>
   <style>
     body {
-      font-family: Arial;
+      font-family: Arial, sans-serif;
       background-color: #eef1f4;
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
     }
     .container {
       max-width: 650px;
       margin: 40px auto;
       padding: 20px;
-      background-color: #fff;
+      background: white;
       border-radius: 12px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
@@ -31,6 +30,7 @@
       border-radius: 8px;
       padding: 10px;
       margin: 20px 0;
+      white-space: pre-line;
     }
     .form-group {
       margin-bottom: 15px;
@@ -61,36 +61,42 @@
       font-size: 16px;
       color: white;
       cursor: pointer;
+      user-select: none;
     }
     .submit-btn  { background-color: #007bff; }
     .start-btn   { background-color: #28a745; }
     .stop-btn    { background-color: #ffc107; color: black; }
     .reset-btn   { background-color: #dc3545; }
     .graph-btn   { background-color: #6f42c1; }
+    button:hover {
+      opacity: 0.9;
+    }
     canvas {
       margin-top: 20px;
       background-color: #fff;
       border: 1px solid #ccc;
       border-radius: 8px;
+      width: 100% !important;
+      height: 300px !important;
     }
   </style>
-  <!-- Chart.js CDN 추가 -->
+  <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="container">
-    <h1>📚 과목별 공부 타이머 & 그래프</h1>
+    <h1>📚 과목별 공부 시간 타이머 & 그래프</h1>
 
     <div class="message-box" id="messages"></div>
 
     <div class="form-group">
       <label for="subjectInput">과목명</label>
-      <input type="text" id="subjectInput" placeholder="예: 수학, 영어 등">
+      <input type="text" id="subjectInput" placeholder="예: 수학, 영어 등" />
     </div>
 
     <div class="form-group">
       <label for="studyTimeInput">직접 입력 시간 (분)</label>
-      <input type="number" id="studyTimeInput" placeholder="예: 60">
+      <input type="number" id="studyTimeInput" placeholder="예: 60" />
     </div>
 
     <div class="button-row">
@@ -101,12 +107,12 @@
       <button class="reset-btn" onclick="reset()">🔄 다시 시작</button>
     </div>
 
-    <canvas id="studyChart" width="100%" height="300"></canvas>
+    <canvas id="studyChart"></canvas>
   </div>
 
   <script>
     let userName = "";
-    let subjectTimes = {};  // { 과목: 총시간 }
+    let subjectTimes = {}; // {과목명: 누적시간}
     let currentSubject = "";
     let startTime = null;
     let chart = null;
@@ -114,12 +120,14 @@
     window.onload = function () {
       userName = prompt("반갑습니다. 성함이 어떻게 되시나요?", "학생");
       loadData();
-      showMessage(`👋 안녕하세요, ${userName}님! 공부를 시작해보세요.`);
+      showMessage(`👋 안녕하세요, ${userName}님! 과목명을 입력하고 공부를 시작해보세요.`);
     };
 
     function loadData() {
       const saved = localStorage.getItem("study_subjects_" + userName);
-      if (saved) subjectTimes = JSON.parse(saved);
+      if (saved) {
+        subjectTimes = JSON.parse(saved);
+      }
     }
 
     function saveData() {
@@ -153,7 +161,7 @@
         return;
       }
       if (startTime !== null) {
-        alert("이미 공부 중입니다.");
+        alert("이미 공부 중입니다!");
         return;
       }
       currentSubject = subject;
@@ -163,16 +171,16 @@
 
     function stopTimer() {
       if (!startTime || !currentSubject) {
-        alert("공부를 시작한 후 종료할 수 있습니다.");
+        alert("공부를 먼저 시작하세요.");
         return;
       }
       const endTime = new Date();
-      const diff = Math.floor((endTime - startTime) / 60000); // 분
+      const diff = Math.floor((endTime - startTime) / 60000); // 분 단위 계산
       if (diff < 1) {
-        showMessage(`⏹️ 너무 짧은 공부 시간은 저장되지 않았습니다.`);
+        showMessage(`⏹️ [${currentSubject}] 공부 시간이 너무 짧아 저장하지 않았습니다.`);
       } else {
         addStudyTime(currentSubject, diff);
-        showMessage(`⏹️ [${currentSubject}] 공부 종료 – ${diff}분 기록됨`);
+        showMessage(`⏹️ [${currentSubject}] 공부 종료 — ${diff}분 기록됨`);
       }
       currentSubject = "";
       startTime = null;
@@ -196,15 +204,15 @@
       } else {
         advice = "🔥 엄청나요! 실전 대비 모드로 전환해도 좋겠어요.";
       }
-      showMessage(`💡 [${subject}] 조언: ${advice}`);
+      showMessage(`💡 [${subject}] 학습 조언: ${advice}`);
     }
 
     function reset() {
       if (confirm("모든 기록을 초기화하시겠습니까?")) {
         subjectTimes = {};
-        saveData();
         startTime = null;
         currentSubject = "";
+        saveData();
         document.getElementById("messages").innerHTML = "";
         if (chart) chart.destroy();
         showMessage("🧹 모든 기록이 초기화되었습니다.");
@@ -215,18 +223,20 @@
       const labels = Object.keys(subjectTimes);
       const data = Object.values(subjectTimes);
 
-      if (chart) chart.destroy();
+      if (chart) {
+        chart.destroy();
+      }
 
-      const ctx = document.getElementById('studyChart').getContext('2d');
+      const ctx = document.getElementById("studyChart").getContext("2d");
       chart = new Chart(ctx, {
-        type: 'bar',
+        type: "bar",
         data: {
           labels: labels,
           datasets: [{
-            label: '과목별 누적 학습 시간 (분)',
+            label: "과목별 누적 학습 시간 (분)",
             data: data,
-            backgroundColor: 'rgba(54, 162, 235, 0.6)',
-            borderColor: 'rgba(54, 162, 235, 1)',
+            backgroundColor: "rgba(54, 162, 235, 0.6)",
+            borderColor: "rgba(54, 162, 235, 1)",
             borderWidth: 1
           }]
         },
@@ -237,8 +247,17 @@
               beginAtZero: true,
               title: {
                 display: true,
-                text: '분'
+                text: "분"
               }
+            }
+          },
+          plugins: {
+            legend: {
+              display: true,
+              position: "top"
+            },
+            tooltip: {
+              enabled: true
             }
           }
         }
@@ -247,3 +266,4 @@
   </script>
 </body>
 </html>
+
