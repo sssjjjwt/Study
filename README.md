@@ -32,16 +32,20 @@
       border-radius: 8px;
       border: 1px solid #ccc;
     }
-    .input-row {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 10px;
+    .form-group {
+      margin-bottom: 15px;
     }
-    .input-row input {
-      flex: 1;
+    .form-group label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+    .form-group input {
+      width: 100%;
       padding: 10px;
       border: 1px solid #ccc;
       border-radius: 6px;
+      font-size: 16px;
     }
     .button-row {
       display: flex;
@@ -55,6 +59,7 @@
       background-color: #007bff;
       color: white;
       cursor: pointer;
+      font-size: 16px;
     }
     button:hover {
       background-color: #0056b3;
@@ -70,11 +75,17 @@
 <body>
   <div class="container">
     <h1>📚 과목별 학습 시간 트래커</h1>
+
     <div class="message-box" id="messages"></div>
 
-    <div class="input-row">
-      <input type="text" id="subjectInput" placeholder="과목명 (예: 수학)">
-      <input type="number" id="studyTimeInput" placeholder="학습 시간 (분)">
+    <div class="form-group">
+      <label for="subjectInput">과목명</label>
+      <input type="text" id="subjectInput" placeholder="예: 수학, 영어 등">
+    </div>
+
+    <div class="form-group">
+      <label for="studyTimeInput">학습 시간 (분)</label>
+      <input type="number" id="studyTimeInput" placeholder="예: 60">
     </div>
 
     <div class="button-row">
@@ -166,3 +177,4 @@
   </script>
 </body>
 </html>
+
